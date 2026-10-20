@@ -1,4 +1,10 @@
 # action-owasp-dependency-track-check
+
+## Fork notes : 
+
+* [] use pinned versions of cyclonedx-npm
+* [] use specific versions of npm
+
 This Github action generates a BoM (Bill Of Materials) of your project and uploads it to an OWASP Dependency Track instance to perform a vulnerability check. In order to use it, you will need an OWASP Dependency Track instance and an access Key to be able to use the REST API from Internet. 
 
 One of the main advantages is that you can customize the vulnerability check sources Dependency Track will use, you can easily check the project status of the different versions using the Dependency Track WUI and you can also check the licenses of the different libraries you project is using. 
@@ -21,7 +27,7 @@ This action requires 3 input variables:
 - **riskscore**: this variable will contain the risk score calculated by OWASP Dependency Track based on the found vulnerabilities. This output can be used to make decision such as notify the developer or use it as the input of the next step of the workflow.
 ## Supported languages
 Currently this action supports the generation of upload of projects devloped in the languages as follows:
-- **Node.js**: define the language variable as `nodejs`. `npm install` will be executed within the container to gather all the dependencies.  
+- **Node.js**: define the language variable as `npm` or `npm-ci`. `npm install` or `npm clean-install` will be executed within the container to gather all the dependencies.  
 - **Python**: define the language variable as `python`. It will get the package information from requirements.txt. 
 - **Golang**: define the language variable as `golang`. It will get the package information from go.mod, which is typically present in the repository.
 - **Ruby**: define the language variable as `ruby`. It will get the package information from Gemfile.lock. 
