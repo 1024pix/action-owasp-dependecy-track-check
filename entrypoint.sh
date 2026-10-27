@@ -26,12 +26,12 @@ else
     echo "[*] Using Dependency Track project : $PROJECT_NAME"
 fi
 
+# Validate node version
+case "$NODE_VERSION" in
+    ""|*[!0-9.]*) echo "[-] Invalid node_version: $NODE_VERSION"; exit 1 ;;
+esac
+
 install_specific_node_version() {
-    curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
-    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" | grep "linux-x64.tar.xz" | sha256sum -c -
-    tar -xJf "node-v${NODE_VERSION}-linux-x64.tar.xz" -C /usr/local --strip-components=1
-
-
     (
         cd /tmp \
         && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
@@ -76,15 +76,15 @@ case $LANGUAGE in
     "python")
         echo "[*]  Processing Python BoM"
         apt-get install --no-install-recommends -y python3 python3-pip
-        freeze=$(pip freeze > requirements.txt)
-        if [ ! $? = 0 ]; then
-            echo "[-] Error executing pip freeze to get a requirements.txt with frozen parameters. Stopping the action!"
-            exit 1
-        fi
+        # freeze=$(pip freeze > requirements.txt)
+        # if [ ! $? = 0 ]; then
+        #     echo "[-] Error executing pip freeze to get a requirements.txt with frozen parameters. Stopping the action!"
+        #     exit 1
+        # fi
         # this is acceptable because the container will be thrown away, otherwise ubuntu noble will not let a pip install without virtualenv
         pip install --break-system-packages cyclonedx-bom 
         path="bom.xml"
-        BoMResult=$(cyclonedx-py requirements -o bom.xml)
+        BoMResult=$(cyclonedx-py requirements --output-format XML -o bom.xml)
         ;;
     
     "golang")
