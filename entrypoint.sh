@@ -4,6 +4,7 @@ DTRACK_URL=$1
 DTRACK_KEY=$2
 LANGUAGE=$3
 DIRECTORY="${4:-.}"
+NODE_VERSION="${5:-22.14.0}"
 
 
 INSECURE="--insecure"
@@ -25,11 +26,26 @@ else
     echo "[*] Using Dependency Track project : $PROJECT_NAME"
 fi
 
+install_specific_node_version() {
+    curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" | grep "linux-x64.tar.xz" | sha256sum -c -
+    tar -xJf "node-v${NODE_VERSION}-linux-x64.tar.xz" -C /usr/local --strip-components=1
+
+
+    (
+        cd /tmp \
+        && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+        && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+           | grep " node-v${NODE_VERSION}-linux-x64.tar.xz\$" | sha256sum -c - \
+        && tar -xJf "node-v${NODE_VERSION}-linux-x64.tar.xz" -C /usr/local --strip-components=1
+    ) || { echo "[-] Node.js installation failed. Stopping the action!"; exit 1; }
+}
+
 case $LANGUAGE in
     "nodejs"|"npm")
         lscommand=$(ls)
         echo "[*] Processing NodeJS BoM"
-        apt-get install --no-install-recommends -y nodejs=22.14.0
+        install_specific_node_version
         npm install
         if [ ! $? = 0 ]; then
             echo "[-] Error executing npm install. Stopping the action!"
@@ -44,7 +60,7 @@ case $LANGUAGE in
     "npm-ci")
         lscommand=$(ls)
         echo "[*] Processing NodeJS BoM"
-        apt-get install --no-install-recommends -y nodejs
+        install_specific_node_version
         # npm clean-install --ignore-scripts
         # if [ ! $? = 0 ]; then
         #     echo "[-] Error executing npm install. Stopping the action!"
@@ -53,7 +69,7 @@ case $LANGUAGE in
         [ -f package-lock.json ] || { echo "[-] package-lock.json not found. Stopping the action!"; exit 1; }
         npm install -g @cyclonedx/cyclonedx-npm
         path="bom.xml"
-        cyclonedx-bom --help
+        cyclonedx-npm --help
         BoMResult=$(cyclonedx-npm --output-format XML --output-file bom.xml --package-lock-only)
         ;;
     
@@ -65,7 +81,8 @@ case $LANGUAGE in
             echo "[-] Error executing pip freeze to get a requirements.txt with frozen parameters. Stopping the action!"
             exit 1
         fi
-        pip install cyclonedx-bom
+        # this is acceptable because the container will be thrown away, otherwise ubuntu noble will not let a pip install without virtualenv
+        pip install --break-system-packages cyclonedx-bom 
         path="bom.xml"
         BoMResult=$(cyclonedx-py requirements -o bom.xml)
         ;;

@@ -23,6 +23,7 @@ This action requires 3 input variables:
 - **key**: KEY used to access the OWASP Dependency Track server, please not that this must no be appropiate for public repositories. This key is confidencial information, so we recommend to [create a secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in the project settings. In the action example we use the name `SECRET_OWASP_DT_KEY` for this secret.
 - **language**: (refer to the next section)
 - **directory**: for monorepos, dependencies may be defined in a sub-directory. Defautl = `.`
+- **node_version**: optional version for node
 
 ## Output variables
 - **riskscore**: this variable will contain the risk score calculated by OWASP Dependency Track based on the found vulnerabilities. This output can be used to make decision such as notify the developer or use it as the input of the next step of the workflow.

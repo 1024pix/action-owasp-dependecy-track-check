@@ -22,6 +22,10 @@ inputs:
     description: 'Sub-directory for monorepos'
     required: false
     default: '.'
+  node_version:
+    description: 'Optional node version to use'
+    required: false
+    default: '22.14.0'
 
 outputs:
   riskscore:
@@ -35,4 +39,5 @@ runs:
     - ${{ inputs.key }}
     - ${{ inputs.language }}
     - ${{ inputs.directory }}
+    - ${{ inputs.node_version }}
 
