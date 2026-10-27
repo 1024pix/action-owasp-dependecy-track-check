@@ -164,7 +164,7 @@ echo "[*] BoM file succesfully generated"
 # Cyclonedx CLI conversion
 echo "[*] Cyclonedx CLI conversion"
 #Does not upload to dtrack when output format = xml (every version available)
-cyclonedx-cli convert --input-file $path --output-file sbom.xml --output-format json_v1_2
+cyclonedx-cli convert --input-file $path --input-format xml --output-file sbom.json --output-format json --output-version v1_5  || { echo "[-] CycloneDX CLI conversion failed. Stopping the action!"; exit 1; }
 
 # UPLOAD BoM to Dependency track server
 echo "[*] Uploading BoM file to Dependency Track server"
@@ -174,7 +174,7 @@ upload_bom=$(curl $INSECURE $VERBOSE -s --location --request POST $DTRACK_URL/ap
 --form "autoCreate=true" \
 --form "projectName=$PROJECT_NAME" \
 --form "projectVersion=$GITHUB_REF" \
---form "bom=@sbom.xml")
+--form "bom=@sbom.json")
 
 token=$(echo $upload_bom | jq ".token" | tr -d "\"")
 echo "[*] BoM file succesfully uploaded with token $token"
@@ -190,11 +190,12 @@ processing=$(curl $INSECURE $VERBOSE -s --location --request GET $DTRACK_URL/api
 --header "X-Api-Key: $DTRACK_KEY" | jq '.processing')
 
 
-while [ $processing = true ]; do
+while [ "$processing" = "true" ]; do
     sleep 5
     processing=$(curl  $INSECURE $VERBOSE -s --location --request GET $DTRACK_URL/api/v1/bom/token/$token \
 --header "X-Api-Key: $DTRACK_KEY" | jq '.processing')
-    if [ $((++c)) -eq 10 ]; then
+    c=$((c + 1))
+    if [ "$c" -eq 10 ]; then
         echo "[-]  Timeout while waiting for processing result. Please check the OWASP Dependency Track status."
         exit 1
     fi
