@@ -6,9 +6,9 @@ LANGUAGE=$3
 DIRECTORY="${4:-.}"
 NODE_VERSION="${5:-22.14.0}"
 
-
+DEPTRACK_RETRIES_TIMEOUT=50
 INSECURE="--insecure"
-#VERBOSE="--verbose"
+VERBOSE="--verbose"
 
 # Access directory where GitHub will mount the repository code
 # $GITHUB_ variables are directly accessible in the script
@@ -161,6 +161,10 @@ fi
 
 echo "[*] BoM file succesfully generated"
 
+if [ -z $VERBOSE ]; then
+    cat $BomResult
+fi
+
 # Cyclonedx CLI conversion
 echo "[*] Cyclonedx CLI conversion"
 #Does not upload to dtrack when output format = xml (every version available)
@@ -195,7 +199,7 @@ while [ "$processing" = "true" ]; do
     processing=$(curl  $INSECURE $VERBOSE -s --location --request GET $DTRACK_URL/api/v1/bom/token/$token \
 --header "X-Api-Key: $DTRACK_KEY" | jq '.processing')
     c=$((c + 1))
-    if [ "$c" -eq 10 ]; then
+    if [ "$c" -eq $DEPTRACK_RETRIES_TIMEOUT ]; then
         echo "[-]  Timeout while waiting for processing result. Please check the OWASP Dependency Track status."
         exit 1
     fi
