@@ -18,6 +18,10 @@ inputs:
     description: 'Programming language'
     required: true
     default: 'nodejs'
+  directory:
+    description: 'Sub-directory for monorepos'
+    required: false
+    default: '.'
 
 outputs:
   riskscore:
@@ -30,4 +34,5 @@ runs:
     - ${{ inputs.url }}
     - ${{ inputs.key }}
     - ${{ inputs.language }}
+    - ${{ inputs.directory }}
 

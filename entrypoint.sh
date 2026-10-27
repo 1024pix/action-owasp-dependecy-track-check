@@ -3,6 +3,7 @@
 DTRACK_URL=$1
 DTRACK_KEY=$2
 LANGUAGE=$3
+DIRECTORY="${4:-.}"
 
 
 INSECURE="--insecure"
@@ -12,39 +13,48 @@ INSECURE="--insecure"
 # $GITHUB_ variables are directly accessible in the script
 cd $GITHUB_WORKSPACE
 
+# for monorepos : change directory to a sub directory specified by the user
+cd "$GITHUB_WORKSPACE/$DIRECTORY" || { echo "[-] Directory not found: $DIRECTORY"; exit 1; }
 
-PROJECT_NAME="$GITHUB_REPOSITORY"
+# for monorepos : change project name with sub-directory
+DIRECTORY_NAME_CLEAN=$(echo "$DIRECTORY" | sed -e 's#^\(\./\)*##' -e 's#/*$##')
+if [ -z "$DIRECTORY_NAME_CLEAN" ] || [ "$DIRECTORY_NAME_CLEAN" = "." ]; then
+    PROJECT_NAME="$GITHUB_REPOSITORY"
+else
+    PROJECT_NAME="$GITHUB_REPOSITORY-$DIRECTORY_NAME_CLEAN"
+    echo "[*] Using Dependency Track project : $PROJECT_NAME"
+fi
 
 case $LANGUAGE in
-    "npm")
+    "nodejs"|"npm")
         lscommand=$(ls)
         echo "[*] Processing NodeJS BoM"
-        apt-get install --no-install-recommends -y nodejs
+        apt-get install --no-install-recommends -y nodejs=22.14.0
         npm install
-        npm audit fix --force
         if [ ! $? = 0 ]; then
             echo "[-] Error executing npm install. Stopping the action!"
             exit 1
         fi
         npm install -g @cyclonedx/cyclonedx-npm
         path="bom.xml"
-        cyclonedx-bom --help
-        BoMResult=$(cyclonedx-bom -o bom.xml)
+        cyclonedx-npm --help
+        BoMResult=$(cyclonedx-npm --output-format XML --output-file bom.xml)
         ;;
 
     "npm-ci")
         lscommand=$(ls)
         echo "[*] Processing NodeJS BoM"
         apt-get install --no-install-recommends -y nodejs
-        npm clean-install --ignore-scripts
-        if [ ! $? = 0 ]; then
-            echo "[-] Error executing npm install. Stopping the action!"
-            exit 1
-        fi
+        # npm clean-install --ignore-scripts
+        # if [ ! $? = 0 ]; then
+        #     echo "[-] Error executing npm install. Stopping the action!"
+        #     exit 1
+        # fi
+        [ -f package-lock.json ] || { echo "[-] package-lock.json not found. Stopping the action!"; exit 1; }
         npm install -g @cyclonedx/cyclonedx-npm
         path="bom.xml"
         cyclonedx-bom --help
-        BoMResult=$(cyclonedx-bom -o bom.xml)
+        BoMResult=$(cyclonedx-npm --output-format XML --output-file bom.xml --package-lock-only)
         ;;
     
     "python")
@@ -179,7 +189,9 @@ echo "[*] OWASP Dependency Track processing completed"
 sleep 5
 
 echo "[*] Retrieving project information"
-project=$(curl  $INSECURE $VERBOSE -s --location --request GET "$DTRACK_URL/api/v1/project/lookup?name=$PROJECT_NAME&version=$GITHUB_REF" \
+project=$(curl  $INSECURE $VERBOSE -s --location --get "$DTRACK_URL/api/v1/project/lookup" \
+--data-urlencode "name=$PROJECT_NAME" \
+--data-urlencode "version=$GITHUB_REF" \
 --header "X-Api-Key: $DTRACK_KEY")
 
 echo "$project"
